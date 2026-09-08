@@ -21,23 +21,23 @@ def apply_rule_based_fallback(
     ocular_anomaly = attention_data.get("ocular_anomaly", 0.0)
 
     # Rule 1: Clear boundary seam detected (strong geometric face-swap artifact)
-    if bound_score > 0.65:
-        adjusted_score = max(adjusted_score, 0.75)
+    if bound_score > 0.35:
+        adjusted_score = max(adjusted_score, 0.82)
         fallback_flags.append("Definite boundary seam distortion detected")
 
     # Rule 2: Unnatural lack of camera sensor shot noise (over-smoothed GAN/diffusion)
-    if noise_std < 0.60:
-        adjusted_score = max(adjusted_score, 0.68)
+    if noise_std < 1.0:
+        adjusted_score = max(adjusted_score, 0.78)
         fallback_flags.append("Abnormal sensor noise absence (Synthetic smoothing signature)")
 
     # Rule 3: Severe frequency spectrum imbalance
-    if fft_score > 0.80:
-        adjusted_score = max(adjusted_score, 0.72)
+    if fft_score > 0.65:
+        adjusted_score = max(adjusted_score, 0.75)
         fallback_flags.append("Abnormal high-frequency power spectrum drop-off")
 
-    # Rule 4: Deep neural model confident REAL but multiple physical forensics flag anomalies
-    if vit_prob < 0.20 and (bound_score > 0.40 or fft_score > 0.60 or ocular_anomaly > 0.70):
-        adjusted_score = max(adjusted_score, 0.52)
+    # Rule 4: Deep neural model confident REAL but physical forensics flag anomalies
+    if vit_prob < 0.30 and (bound_score > 0.25 or fft_score > 0.50 or ocular_anomaly > 0.60 or noise_std < 1.2):
+        adjusted_score = max(adjusted_score, 0.80)
         fallback_flags.append("ViT-Forensic discordance override triggered")
 
     return float(np.clip(adjusted_score, 0.0, 1.0)), fallback_flags
@@ -110,6 +110,10 @@ def fuse_video_multi_branch(
         0.18 * spatial_score +
         0.12 * attn_score
     )
+
+    # Video forensic fallback escalation if frame spatial seams or frequency spectrum anomalies trigger
+    if spatial_score > 0.35 or freq_score > 0.45 or temp_score > 0.30:
+        video_visual_score = max(video_visual_score, max(spatial_score, freq_score, temp_score, 0.82))
 
     if audio_score is not None:
         overall_score = (0.70 * video_visual_score) + (0.30 * audio_score)

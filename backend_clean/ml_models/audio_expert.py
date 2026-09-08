@@ -162,6 +162,7 @@ def extract_audio_features(file_path: str) -> np.ndarray:
 def predict_audio(file_path: str) -> float:
     """
     Analyzes an audio file and returns fake probability (0.0 = Real, 1.0 = Fake).
+    Combines trained pipeline prediction with acoustic pitch dynamic checks.
     """
     if clf is None:
         return 0.5
@@ -169,8 +170,20 @@ def predict_audio(file_path: str) -> float:
     try:
         features = extract_audio_features(file_path)
         features_reshaped = features.reshape(1, -1)
-        probabilities = clf.predict_proba(features_reshaped)
-        return float(probabilities[0][1])
+        
+        # Pitch variance (feature index 65, which is pitch_std)
+        # Real human speech has pitch variation (pitch_std > 5 Hz), synthetic/monotone audio has pitch_std ~ 0
+        pitch_std = features[65] if len(features) > 65 else 0.0
+        
+        prob = float(clf.predict_proba(features_reshaped)[0][1])
+
+        # Acoustic rule override for synthetic robotic voices vs natural speech
+        if pitch_std < 1.0:
+            return max(prob, 0.85)
+        elif pitch_std > 8.0:
+            return min(prob, 0.15)
+
+        return prob
     except Exception as e:
         print(f"Error processing audio: {e}")
         return 0.5

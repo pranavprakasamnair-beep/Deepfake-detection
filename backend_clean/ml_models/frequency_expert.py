@@ -58,7 +58,10 @@ def analyze_dct_spectrum(img_rgb: np.ndarray, block_size: int = 8) -> dict:
     energy_std = float(np.std(high_freq_energies)) if high_freq_energies else 0.0
     energy_mean = float(np.mean(high_freq_energies)) if high_freq_energies else 0.0
 
-    dct_fake_prob = float(np.clip(energy_std / (energy_mean + 1e-4) * 0.8, 0.0, 1.0))
+    if energy_mean < 0.5:
+        dct_fake_prob = 0.75
+    else:
+        dct_fake_prob = float(np.clip((energy_mean - energy_std) / (energy_mean + 1e-4) * 0.3, 0.0, 0.35))
 
     return {
         "dct_score": round(dct_fake_prob, 4),

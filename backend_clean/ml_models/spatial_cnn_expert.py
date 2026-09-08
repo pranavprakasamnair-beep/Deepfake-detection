@@ -22,7 +22,7 @@ def extract_boundary_seams(img_rgb: np.ndarray) -> dict:
     edges = cv2.Canny(gray, 50, 150)
     boundary_edges = edges * mask
     edge_density = float(boundary_edges.mean() / 255.0)
-    boundary_fake_prob = float(min(edge_density / 0.10, 1.0))
+    boundary_fake_prob = float(min(edge_density / 0.01, 1.0))
 
     return {
         "boundary_score": round(boundary_fake_prob, 4),
