@@ -39,3 +39,11 @@ backend_clean/test/
 # All other .pkl files in the repo are ignored by default
 *.pkl
 !backend_clean/models/audio_logistic_model.pkl
+
+# Large AI model weights — keep locally, exclude from Git
+/backend/models/vit_deepfake/model.safetensors
+/backend/models/vit_faceswap/model.safetensors
+/backend/models/vit_finetuned/model.safetensors
+
+# Accidental temporary file
+*-files *.safetensors

@@ -1,0 +1,27 @@
+# Version control
+.git
+.gitignore
+
+# Python
+**/__pycache__
+**/*.pyc
+**/*.pyo
+**/*.pyd
+**/.venv
+**/venv
+**/env
+
+# Node.js
+**/node_modules
+**/npm-debug.log
+
+# Build artifacts
+frontend/dist
+.gemini
+scratch
+colab/*.pt
+colab/*.png
+
+# System
+.DS_Store
+Thumbs.db

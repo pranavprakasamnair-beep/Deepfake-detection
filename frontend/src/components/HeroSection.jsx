@@ -39,10 +39,6 @@ export const HeroSection = () => {
             <Cpu className="w-4 h-4 text-indigo-400" />
             <span>Dual ViT Ensemble (FF++)</span>
           </div>
-          <div className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-emerald-950/40 border border-emerald-500/30 shadow-sm text-xs font-mono text-emerald-400">
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-            <span>Composite Fused Accuracy: 98.4%</span>
-          </div>
         </div>
 
       </div>

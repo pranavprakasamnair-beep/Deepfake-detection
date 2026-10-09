@@ -241,14 +241,17 @@ async def analyze_audio(file: UploadFile = File(...)):
         with open(audio_path, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
 
+        analysis_path = audio_path
         if not file.filename.lower().endswith(".wav"):
-            subprocess.run([
-                "ffmpeg", "-i", audio_path, "-ar", "16000", "-ac", "1",
-                converted_path, "-y"
-            ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
-            analysis_path = converted_path
-        else:
-            analysis_path = audio_path
+            try:
+                subprocess.run([
+                    "ffmpeg", "-i", audio_path, "-ar", "16000", "-ac", "1",
+                    converted_path, "-y"
+                ], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                if os.path.exists(converted_path):
+                    analysis_path = converted_path
+            except Exception:
+                analysis_path = audio_path
 
         fake_probability = predict_audio(analysis_path)
         is_fake = fake_probability > 0.50

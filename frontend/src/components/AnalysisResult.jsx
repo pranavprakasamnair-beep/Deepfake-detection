@@ -5,9 +5,20 @@ import { cn } from '@/lib/utils';
 export const AnalysisResult = ({ result }) => {
   const isFake = result.isDeepfake;
 
-  const caseNumber = React.useMemo(() => 
-    `DF-${Math.floor(Math.random() * 90000) + 10000}-26`, []
-  );
+  const caseNumber = React.useMemo(() => {
+    if (result?.caseNumber) {
+      return result.caseNumber;
+    }
+    if (result?.fileName) {
+      let hash = 0;
+      for (let i = 0; i < result.fileName.length; i++) {
+        hash = ((hash << 5) - hash) + result.fileName.charCodeAt(i);
+        hash |= 0;
+      }
+      return `DF-${(Math.abs(hash) % 90000) + 10000}-26`;
+    }
+    return 'DF-58492-26';
+  }, [result?.caseNumber, result?.fileName]);
 
   const today = new Date().toLocaleDateString('en-US', {
     year: 'numeric', month: 'short', day: '2-digit'
@@ -56,7 +67,7 @@ export const AnalysisResult = ({ result }) => {
             </span>
           </div>
           <div className="flex flex-col text-right font-mono text-sm mt-1">
-            <span><strong>CASE NO:</strong> {caseNumber}</span>
+            <span><strong>CASE NO:</strong> {caseNumber} {result?.inspectionCount > 1 ? `(Log #${result.inspectionCount})` : ''}</span>
             <span><strong>DATE:</strong> {today}</span>
           </div>
         </div>
@@ -81,7 +92,7 @@ export const AnalysisResult = ({ result }) => {
               "font-mono font-bold text-sm md:text-base tracking-wide px-2.5 py-0.5 rounded w-fit",
               isFake ? "bg-red-100 text-red-700 border border-red-300" : "bg-emerald-100 text-emerald-800 border border-emerald-300"
             )}>
-              {isFake ? `${result.confidence}% MANIPULATED (FORGERY)` : `${100 - result.confidence}% AUTHENTIC`}
+              {isFake ? `${result.confidence}% MANIPULATED (FORGERY)` : `${result.confidence}% AUTHENTIC`}
             </span>
           </div>
         </div>

@@ -15,17 +15,17 @@ else:
         face_cascade = cv2.CascadeClassifier(cv2_cascade_path)
 
 
-def preprocess_frame_normalization(img_rgb: np.ndarray, apply_noise_reduction: bool = True) -> np.ndarray:
+def preprocess_frame_normalization(img_rgb: np.ndarray, apply_noise_reduction: bool = False) -> np.ndarray:
     """
-    Preprocessing Layer: Frame Normalization & Noise Filtering (Section III & Fig 3.1).
-    Applies bilateral noise filtering while preserving edge gradients and blending seams.
+    Preprocessing Layer: Frame Normalization & Color Space Preparation.
+    Preserves fine micro-textures and sensor grain for accurate ViT and frequency forensics.
     """
     if img_rgb is None or img_rgb.size == 0:
         return img_rgb
 
     processed = img_rgb.copy()
     if apply_noise_reduction:
-        processed = cv2.bilateralFilter(processed, d=5, sigmaColor=35, sigmaSpace=35)
+        processed = cv2.bilateralFilter(processed, d=3, sigmaColor=15, sigmaSpace=15)
 
     return processed
 
@@ -77,7 +77,7 @@ def extract_face_crop(img_rgb: np.ndarray, target_size: tuple = (224, 224)) -> n
 def extract_faces_from_video(video_path: str, max_frames: int = 35, target_size: tuple = (224, 224)) -> list:
     """
     Multi-Face Detection & Size-Invariant Tracking across video sequences (MINTIME concept).
-    Tracks multiple identities across time frames and extracts size-standardized crops.
+    Extracts high-confidence size-standardized face crops and filters out non-face false positives.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -89,59 +89,46 @@ def extract_faces_from_video(video_path: str, max_frames: int = 35, target_size:
         cap.release()
         return []
 
-    stride = max(1, total_frames // max_frames)
+    # Adaptive stride to thoroughly scan the video for clean facial appearances
+    stride = max(1, total_frames // (max_frames * 2))
     current_frame_idx = 0
     extracted_count = 0
 
     while True:
-        ret = cap.grab()
+        ret, frame = cap.read()
         if not ret or extracted_count >= max_frames:
             break
 
         if current_frame_idx % stride == 0:
-            ret, frame = cap.retrieve()
-            if not ret:
-                break
-
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-            
+            h, w, _ = frame_rgb.shape
+
             detected = ()
             if face_cascade is not None and not face_cascade.empty():
                 gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                detected = face_cascade.detectMultiScale(gray, scaleFactor=1.15, minNeighbors=3, minSize=(40, 40))
+                # minNeighbors=6 eliminates false positive detections on clothes, furniture and walls
+                detected = face_cascade.detectMultiScale(gray, scaleFactor=1.1, minNeighbors=6, minSize=(60, 60))
 
             if len(detected) > 0:
                 sorted_faces = sorted(detected, key=lambda f: f[2] * f[3], reverse=True)
-                for x, y, w, h in sorted_faces[:2]:
-                    img_h, img_w, _ = frame_rgb.shape
-                    pad = 0.30
-                    x1 = max(0, int(x - w * pad))
-                    y1 = max(0, int(y - h * pad))
-                    x2 = min(img_w, int(x + w * (1.0 + pad)))
-                    y2 = min(img_h, int(y + h * (1.0 + pad)))
+                for x, y, fw, fh in sorted_faces[:2]:
+                    pad = 0.25
+                    x1 = max(0, int(x - fw * pad))
+                    y1 = max(0, int(y - fh * pad))
+                    x2 = min(w, int(x + fw * (1.0 + pad)))
+                    y2 = min(h, int(y + fh * (1.0 + pad)))
 
                     crop = frame_rgb[y1:y2, x1:x2]
-                    if crop.shape[0] >= 30 and crop.shape[1] >= 30:
+                    if crop.shape[0] >= 40 and crop.shape[1] >= 40:
                         if target_size is not None:
                             crop = cv2.resize(crop, target_size, interpolation=cv2.INTER_CUBIC)
                         faces.append(crop)
                         extracted_count += 1
                         if extracted_count >= max_frames:
                             break
-            else:
-                # Fallback: center crop
-                h, w, _ = frame_rgb.shape
-                min_dim = min(h, w)
-                cy, cx = h // 2, w // 2
-                half = min_dim // 2
-                crop = frame_rgb[max(0, cy-half):min(h, cy+half), max(0, cx-half):min(w, cx+half)]
-                if target_size is not None and crop.size > 0:
-                    crop = cv2.resize(crop, target_size, interpolation=cv2.INTER_CUBIC)
-                if crop.size > 0:
-                    faces.append(crop)
-                    extracted_count += 1
 
         current_frame_idx += 1
 
     cap.release()
     return faces
+

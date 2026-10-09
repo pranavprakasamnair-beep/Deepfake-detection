@@ -49,7 +49,7 @@ export const UploadCard = ({ type, onAnalysisComplete }) => {
   const Icon = config.icon;
 
 const transformBackendResponse = (backendResult) => {
-    const isDeepfake = backendResult.label === "FAKE";
+    const isDeepfake = backendResult.label === "FAKE" || backendResult.verdict === "FAKE" || backendResult.label === "FORGERY DETECTED";
     const fileType = backendResult.file_type || 'image';
     const confidence = backendResult.confidence;
     
@@ -155,6 +155,8 @@ const transformBackendResponse = (backendResult) => {
         }
       ],
       details: details,
+      caseNumber: backendResult.case_number,
+      inspectionCount: backendResult.inspection_count,
       suspicious_frames: backendResult.suspicious_frames || []
     };
   };
@@ -215,7 +217,8 @@ const transformBackendResponse = (backendResult) => {
           reject(new Error('Network connection failed'));
         };
 
-        xhr.open('POST', 'http://127.0.0.1:8000/analyze');
+        const host = window.location.hostname || '127.0.0.1';
+        xhr.open('POST', `http://${host}:8000/analyze`);
         xhr.send(formData);
       });
 

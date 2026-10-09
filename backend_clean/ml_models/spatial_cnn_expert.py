@@ -22,7 +22,13 @@ def extract_boundary_seams(img_rgb: np.ndarray) -> dict:
     edges = cv2.Canny(gray, 50, 150)
     boundary_edges = edges * mask
     edge_density = float(boundary_edges.mean() / 255.0)
-    boundary_fake_prob = float(min(edge_density / 0.01, 1.0))
+    # NOTE: normal photos/video frames commonly have border edge_density in the
+    # 0.10-0.25 range just from natural texture/background — dividing by 0.01
+    # saturated this score to 1.0 for almost everything, real or fake.
+    # 0.30 keeps the signal meaningful (only unusually dense, seam-like edge
+    # concentrations near the border approach 1.0) while still catching strong
+    # geometric splice artifacts.
+    boundary_fake_prob = float(min(edge_density / 0.30, 1.0))
 
     return {
         "boundary_score": round(boundary_fake_prob, 4),
@@ -38,7 +44,7 @@ def extract_texture_smoothness(img_rgb: np.ndarray) -> dict:
     clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     norm_gray = clahe.apply(gray)
     var = float(cv2.Laplacian(norm_gray, cv2.CV_32F).var())
-    
+   
     natural_texture = float(min(var / 100.0, 1.0))
     texture_fake_prob = float(1.0 - natural_texture)
 
@@ -57,11 +63,11 @@ def extract_lighting_consistency(img_rgb: np.ndarray) -> dict:
     mid = w // 2
     left_half = gray[:, :mid]
     right_half = cv2.flip(gray[:, mid:], 1)
-    
+   
     min_w = min(left_half.shape[1], right_half.shape[1])
     l_m = np.mean(left_half[:, :min_w])
     r_m = np.mean(right_half[:, :min_w])
-    
+   
     diff_ratio = abs(l_m - r_m) / (max(l_m, r_m) + 1e-5)
     lighting_anomaly = float(np.clip(diff_ratio / 0.40, 0.0, 1.0))
 
