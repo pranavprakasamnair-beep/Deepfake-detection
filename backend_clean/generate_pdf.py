@@ -245,7 +245,7 @@ def build_chapter4_pdf():
     ))
 
     # Add UI Screenshot
-    ui_screenshot = r"C:\Users\Administrator\.gemini\antigravity\brain\a3f37e13-b24b-4d83-84d0-0209e2445d0e\.user_uploaded\media_1787927800413.png"
+    ui_screenshot = r"C:\Users\Administrator\.gemini\storage\brain\a3f37e13-b24b-4d83-84d0-0209e2445d0e\.user_uploaded\media_1787927800413.png"
     if os.path.exists(ui_screenshot):
         img = Image(ui_screenshot, width=6.2*inch, height=2.5*inch)
         story.append(KeepTogether([

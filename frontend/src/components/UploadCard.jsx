@@ -217,8 +217,11 @@ const transformBackendResponse = (backendResult) => {
           reject(new Error('Network connection failed'));
         };
 
-        const host = window.location.hostname || '127.0.0.1';
-        xhr.open('POST', `http://${host}:8000/analyze`);
+        const port = window.location.port;
+        const uploadUrl = (!port || port === '80' || port === '443') 
+          ? '/analyze' 
+          : `http://${window.location.hostname || '127.0.0.1'}:8000/analyze`;
+        xhr.open('POST', uploadUrl);
         xhr.send(formData);
       });
 

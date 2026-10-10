@@ -25,8 +25,14 @@ export const HistoryView = ({ onSelectCase, onBack }) => {
   const [filterType, setFilterType] = useState('all'); // 'all' | 'image' | 'video' | 'audio'
   const [filterVerdict, setFilterVerdict] = useState('all'); // 'all' | 'REAL' | 'FAKE'
 
-  const apiHost = typeof window !== 'undefined' ? window.location.hostname || 'localhost' : 'localhost';
-  const apiBase = `http://${apiHost}:8000`;
+  const apiBase = useMemo(() => {
+    if (typeof window === 'undefined') return 'http://localhost:8000';
+    const port = window.location.port;
+    if (!port || port === '80' || port === '443') {
+      return '';
+    }
+    return `http://${window.location.hostname}:8000`;
+  }, []);
 
   const fetchHistory = async () => {
     setLoading(true);

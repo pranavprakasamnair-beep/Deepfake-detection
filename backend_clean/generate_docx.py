@@ -123,7 +123,7 @@ add_caption("Table 4.1: Comprehensive Benchmark Datasets Utilized in Empirical E
 add_styled_heading("4.1.1 Graphical User Interface Output and Physical Case File Dossier", 2)
 add_body_p("To bridge advanced computational forensics with practical investigative applicability, the implemented framework provides a full-stack forensic workbench styled as an official forensic case file dossier. Upon receiving an uploaded media asset (image, multi-frame video, or audio track), the system executes multi-threaded inference across all seven subsystems and yields an interpretable physical Polaroid evidence output stamped with either a definitive 'VERIFIED AUTHENTIC' or 'FORGERY DETECTED' forensic seal.")
 
-ui_path = r"C:\Users\Administrator\.gemini\antigravity\brain\a3f37e13-b24b-4d83-84d0-0209e2445d0e\.user_uploaded\media_1787927800413.png"
+ui_path = r"C:\Users\Administrator\.gemini\storage\brain\a3f37e13-b24b-4d83-84d0-0209e2445d0e\.user_uploaded\media_1787927800413.png"
 if os.path.exists(ui_path):
     p_img = doc.add_paragraph()
     p_img.alignment = WD_ALIGN_PARAGRAPH.CENTER

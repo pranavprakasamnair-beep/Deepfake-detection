@@ -1,7 +1,15 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { AnalysisResult } from "../types";
 
-const API = `http://${typeof window !== 'undefined' ? window.location.hostname || 'localhost' : 'localhost'}:8000/analyze`;
+const getApiUrl = () => {
+  if (typeof window === 'undefined') return 'http://localhost:8000/analyze';
+  const port = window.location.port;
+  if (!port || port === '80' || port === '443') {
+    return '/analyze';
+  }
+  return `http://${window.location.hostname}:8000/analyze`;
+};
+const API = getApiUrl();
 
 interface Props {
   onResult: (result: AnalysisResult) => void;
