@@ -23,4 +23,22 @@ export interface AnalysisResult {
   threshold: number;
   processing_time_sec: number;
   filename?: string;
+  case_number?: string;
+  inspection_count?: number;
+  media_path?: string;
+  file_type?: string;
+}
+
+export interface HistoryCase {
+  file_hash: string;
+  case_number: string;
+  filename: string;
+  media_type: "image" | "video" | "audio";
+  verdict: "FAKE" | "REAL";
+  confidence: number;
+  first_inspected: string;
+  last_inspected: string;
+  inspection_count: number;
+  media_path?: string;
+  details?: Record<string, any>;
 }

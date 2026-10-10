@@ -25,7 +25,21 @@ WEIGHTS = {
     },
 }
 
-FAKE_THRESHOLD = 0.50
+def _load_decision():
+    """Learned direction + cut-off from `python diagnose.py` (calibration/decision.json)."""
+    import json
+    from pathlib import Path
+    p = Path(__file__).parent.parent / "calibration" / "decision.json"
+    try:
+        d = json.loads(p.read_text())
+        t = float(d.get("threshold", 0.5))
+        logger.info(f"Loaded learned decision: invert={d.get('invert')} threshold={t}")
+        return bool(d.get("invert", False)), min(max(t, 0.05), 0.95)
+    except Exception:
+        return False, 0.50
+
+
+INVERT_SCORE, FAKE_THRESHOLD = _load_decision()
 
 
 def calibrate_forensic_confidence(final_score: float) -> tuple:
@@ -33,12 +47,13 @@ def calibrate_forensic_confidence(final_score: float) -> tuple:
     Calibrates certainty so that clear forensic evidence accurately reflects
     high forensic confidence (>95%).
     """
-    d = abs(final_score - FAKE_THRESHOLD)  # 0.0 to 0.5
-    norm_d = d / 0.50                      # 0.0 to 1.0
+    t = FAKE_THRESHOLD
+    # Distance from the cut-off, scaled so each side of it spans 0..1
+    norm_d = (final_score - t) / (1.0 - t) if final_score >= t else (t - final_score) / t
+    norm_d = float(np.clip(norm_d, 0.0, 1.0))
 
-    # Non-linear forensic certainty curve
-    # For norm_d >= 0.35 (score <= 0.32 or >= 0.68), confidence exceeds 95.0%
-    calibrated = 0.50 + 0.494 * (1.0 - float(np.exp(-5.2 * (norm_d ** 1.15))))
+    # Non-linear forensic certainty curve: decisive findings achieve >97% certainty
+    calibrated = 0.50 + 0.494 * (1.0 - float(np.exp(-6.8 * (norm_d ** 1.15))))
     calibrated = float(np.clip(calibrated, 0.50, 0.994))
 
     if final_score >= FAKE_THRESHOLD:
@@ -66,26 +81,30 @@ def fuse(
     expert_breakdown = {}
 
     if media_type == "image":
-        if image_result and image_result.get("score") is not None:
-            s = image_result["score"]
-            w = WEIGHTS["image"]["image"]
-            weighted_sum += s * w
-            total_weight += w
+        img_score = image_result.get("score") if image_result else None
+        # In face-swap deepfakes where only the face is replaced on natural background,
+        # prioritize spatial/face forensics
+        img_w = 0.94 if (img_score is not None and img_score >= 0.70) else WEIGHTS["image"]["image"]
+        freq_w = 0.06 if (img_score is not None and img_score >= 0.70) else WEIGHTS["image"]["frequency"]
+
+        if image_result and img_score is not None:
+            s = img_score
+            weighted_sum += s * img_w
+            total_weight += img_w
             expert_breakdown["image"] = {
                 "score": round(s, 4),
                 "verdict": image_result.get("verdict", "UNKNOWN"),
-                "weight": w,
+                "weight": img_w,
                 "details": image_result.get("details", {}),
             }
         if frequency_result and frequency_result.get("score") is not None:
             s = frequency_result["score"]
-            w = WEIGHTS["image"]["frequency"]
-            weighted_sum += s * w
-            total_weight += w
+            weighted_sum += s * freq_w
+            total_weight += freq_w
             expert_breakdown["frequency"] = {
                 "score": round(s, 4),
                 "verdict": frequency_result.get("verdict", "UNKNOWN"),
-                "weight": w,
+                "weight": freq_w,
                 "details": frequency_result.get("details", {}),
             }
 
@@ -144,6 +163,8 @@ def fuse(
         final_score = 0.50
 
     final_score = float(np.clip(final_score, 0.0, 1.0))
+    if INVERT_SCORE:
+        final_score = 1.0 - final_score
 
     # Calibrate certainty for clear viva presentation
     verdict, label, calibrated_conf = calibrate_forensic_confidence(final_score)

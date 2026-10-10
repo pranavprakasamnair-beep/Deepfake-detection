@@ -2,9 +2,10 @@ import React, { useState, useEffect } from "react";
 import FileUpload from "./components/FileUpload";
 import CameraCapture from "./components/CameraCapture";
 import ResultsPanel from "./components/ResultsPanel";
+import HistoryView from "./components/HistoryView";
 import { AnalysisResult } from "./types";
 
-type Tab = "upload" | "camera";
+type Tab = "upload" | "camera" | "history";
 
 function NetworkIP() {
   const [info, setInfo] = useState("Loading network info...");
@@ -69,13 +70,20 @@ export default function App() {
     }, 100);
   };
 
+  const handleSelectHistoryCase = (r: AnalysisResult) => {
+    setResult(r);
+    setTimeout(() => {
+      document.getElementById("results")?.scrollIntoView({ behavior: "smooth" });
+    }, 100);
+  };
+
   return (
     <div className="min-h-screen bg-[#070b14] text-white">
       {analyzing && <LoadingOverlay />}
 
       {/* Header */}
       <div className="border-b border-white/10 bg-[#0a0f1e]/80 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
+        <div className="max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
           <div className="text-3xl">🕵️</div>
           <div>
             <h1 className="text-white font-black text-xl tracking-tight">
@@ -90,39 +98,64 @@ export default function App() {
         </div>
       </div>
 
-      <div className="max-w-2xl mx-auto px-4 py-6 flex flex-col gap-6">
+      <div className="max-w-3xl mx-auto px-4 py-6 flex flex-col gap-6">
 
         {/* Tab selector */}
         <div className="flex bg-white/5 border border-white/10 rounded-2xl p-1.5 gap-1.5">
-          {(["upload", "camera"] as Tab[]).map((tab) => (
+          {(
+            [
+              { id: "upload", label: "📁 Upload File" },
+              { id: "camera", label: "📷 Camera Capture" },
+              { id: "history", label: "📜 Inspection History" },
+            ] as const
+          ).map((tab) => (
             <button
-              key={tab}
-              onClick={() => { setActiveTab(tab); setResult(null); }}
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); }}
               className={`
-                flex-1 py-3 rounded-xl font-semibold text-sm transition-all duration-300
-                ${activeTab === tab
+                flex-1 py-3 rounded-xl font-semibold text-xs sm:text-sm transition-all duration-300
+                ${activeTab === tab.id
                   ? "bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/20"
                   : "text-white/50 hover:text-white hover:bg-white/5"
                 }
               `}
             >
-              {tab === "upload" ? "📁 Upload File" : "📷 Camera Capture"}
+              {tab.label}
             </button>
           ))}
         </div>
 
-        {/* Input panel */}
-        <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
-          {activeTab === "upload" ? (
+        {/* Active Tab Panel */}
+        {activeTab === "upload" && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
             <FileUpload onResult={handleResult} onAnalyzing={setAnalyzing} />
-          ) : (
+          </div>
+        )}
+
+        {activeTab === "camera" && (
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5">
             <CameraCapture onResult={handleResult} onAnalyzing={setAnalyzing} />
-          )}
-        </div>
+          </div>
+        )}
+
+        {activeTab === "history" && (
+          <HistoryView onSelectCase={handleSelectHistoryCase} />
+        )}
 
         {/* Results */}
         {result && (
           <div id="results">
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="text-xs uppercase tracking-wider text-cyan-400 font-bold">
+                Forensic Dossier
+              </span>
+              <button
+                onClick={() => setResult(null)}
+                className="text-xs text-white/40 hover:text-white transition"
+              >
+                Close Report ✕
+              </button>
+            </div>
             <ResultsPanel result={result} />
           </div>
         )}
@@ -132,7 +165,7 @@ export default function App() {
 
         {/* Footer */}
         <div className="text-center text-white/20 text-xs py-4 border-t border-white/5">
-          Multimodal Deepfake Forensics • EfficientNet-B4 + ViT + FFT + MFCC
+          Multimodal Deepfake Forensics • Dual ViT + Spatial Splicing + FFT Frequency Spectrum + Persistent SQLite Audit Trail
         </div>
       </div>
     </div>

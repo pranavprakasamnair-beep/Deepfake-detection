@@ -52,6 +52,7 @@ class ModelRegistry:
             return
         self._load_vit_models()
         self._load_custom_efficientnet()
+        self._load_learned_flips()
         self._load_audio_model()
         self._loaded = True
         logger.info("=== Deepfake Detection Engine v2.0 Ready ===")
@@ -100,6 +101,27 @@ class ModelRegistry:
             logger.info("✅ ViT Model 2 (Wvolf FaceSwap) loaded")
         except Exception as e:
             logger.warning(f"ViT Model 2 not available: {e} — continuing with Model 1")
+
+    # ── Learned polarity (written by `python diagnose.py`, many labelled images) ──
+    def _load_learned_flips(self):
+        """
+        Per-model direction is NOT guessed from one or two images any more. It is
+        learned by diagnose.py from your labelled real/fake folders and stored in
+        calibration/decision.json. With no file, nothing is flipped.
+        """
+        import json
+        self.vit1_flip = False
+        self.vit2_flip = False
+        self.effnet_fake_idx = 0  # Colab script trains 0 = FAKE, 1 = REAL
+        p = Path(__file__).parent.parent / "calibration" / "decision.json"
+        try:
+            flips = json.loads(p.read_text()).get("flips", {})
+            self.vit1_flip = bool(flips.get("vit1", False))
+            self.vit2_flip = bool(flips.get("vit2", False))
+            self.effnet_fake_idx = 1 if flips.get("effnet", False) else 0
+            logger.info(f"Learned flips loaded: vit1={self.vit1_flip} vit2={self.vit2_flip} effnet_idx={self.effnet_fake_idx}")
+        except Exception:
+            logger.info("No learned flips (run diagnose.py to learn them) - using model labels as-is")
 
     # ── Custom Trained EfficientNet (from Google Colab) ──────────────────────
     def _load_custom_efficientnet(self):

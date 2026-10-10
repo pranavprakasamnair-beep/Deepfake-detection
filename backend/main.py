@@ -55,6 +55,10 @@ def health():
     return {"status": "ok", "version": "2.0.0"}
 
 
+media_dir = Path(__file__).parent / "database" / "media"
+media_dir.mkdir(parents=True, exist_ok=True)
+app.mount("/media", StaticFiles(directory=str(media_dir)), name="media")
+
 # Mount static production build for single-port unified deployment
 dist_path = Path(__file__).parent.parent / "frontend" / "dist"
 if not dist_path.exists():

@@ -158,12 +158,17 @@ export default function CameraCapture({ onResult, onAnalyzing }: Props) {
       const file = new File([capturedBlob], fname, { type: capturedBlob.type });
       const form = new FormData();
       form.append("file", file);
+      form.append("is_camera", "true");
       const res = await fetch(API, { method: "POST", body: form });
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: "Server error" }));
         throw new Error(err.detail || "Analysis failed");
       }
-      const data: AnalysisResult = await res.json();
+      const data: AnalysisResult & { preview_url?: string; previewUrl?: string } = await res.json();
+      if (capturedURL) {
+        data.preview_url = capturedURL;
+        data.previewUrl = capturedURL;
+      }
       onResult(data);
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : "Analysis failed");
